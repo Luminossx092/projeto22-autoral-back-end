@@ -1,10 +1,9 @@
+import { duplicatedEmailError } from '@/errors/duplicated-email-error';
+import { invalidCredentialsError } from '@/errors/invalid-credentials-error';
+import userRepository from '@/repositories/user-repository';
 import { User } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { invalidCredentialsError } from './errors';
-import { exclude } from '@/utils/prisma-utils';
-import userRepository from '@/repositories/user-repository';
-import sessionRepository from '@/repositories/session-repository';
 
 async function signIn(params: SignInParams): Promise<SignInResult> {
   const { email, password } = params;
@@ -16,24 +15,43 @@ async function signIn(params: SignInParams): Promise<SignInResult> {
   const token = await createSession(user.id);
 
   return {
-    user: exclude(user, 'password'),
+    user,
     token,
   };
 }
 
+async function signUp(params: SignUpParams) {
+console.log(params)
+  const user = await CreateUser(params);
+console.log(user)
+  const token = await createSession(user.id);
+console.log(token)
+  return token;
+}
+
+
 async function getUserOrFail(email: string): Promise<GetUserOrFailResult> {
-  const user = await userRepository.findByEmail(email, { id: true, email: true, password: true });
+  const user = await userRepository.findByEmail(email);
   if (!user) throw invalidCredentialsError();
 
   return user;
 }
 
+async function CreateUser(params: SignUpParams): Promise<User> {
+  const { name, email, password } = params;
+console.log(params)
+  const user = await userRepository.findByEmail(email);
+  console.log(user);
+if (user) throw duplicatedEmailError();
+
+  const hashPassword: string = await bcrypt.hash(password, 10);
+console.log(hashPassword)
+  const newUser = await userRepository.create({ name, email, password: hashPassword });
+  return newUser;
+}
+
 async function createSession(userId: number) {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET);
-  await sessionRepository.create({
-    token,
-    userId,
-  });
 
   return token;
 }
@@ -44,6 +62,7 @@ async function validatePasswordOrFail(password: string, userPassword: string) {
 }
 
 export type SignInParams = Pick<User, 'email' | 'password'>;
+export type SignUpParams = Pick<User, 'name' | 'email' | 'password'>;
 
 type SignInResult = {
   user: Pick<User, 'id' | 'email'>;
@@ -54,7 +73,7 @@ type GetUserOrFailResult = Pick<User, 'id' | 'email' | 'password'>;
 
 const authenticationService = {
   signIn,
+  signUp
 };
 
 export default authenticationService;
-export * from './errors';

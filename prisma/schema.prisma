@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,4 +5,39 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model Album {
+  id         Int      @id(map: "albums_pk") @default(autoincrement())
+  name       String   @db.VarChar
+  artistId   Int
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+}
+
+model Artist {
+  id         Int      @id(map: "artists_pk") @default(autoincrement())
+  name       String   @db.VarChar
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+}
+
+model Songs {
+  id         Int      @id(map: "songs_pk") @default(autoincrement())
+  title      String   @db.VarChar
+  genre      String?  @db.VarChar
+  duration   DateTime @db.Time(6)
+  albumId    Int?
+  artistId   Int?
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+}
+
+model User {
+  id         Int      @id(map: "users_pk") @default(autoincrement())
+  name       String   @unique(map: "public.users_name_key") @db.VarChar
+  email      String   @unique @db.VarChar
+  password   String   @db.VarChar
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
 }
